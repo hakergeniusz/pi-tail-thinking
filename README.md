@@ -1,4 +1,4 @@
-# pi-cot-tail
+# pi-tail-thinking
 
 Rolling chain-of-thought for [pi](https://github.com/earendil-works/pi): while
 the model streams its thinking, only the **last 15 lines** stay on screen; the
@@ -42,13 +42,13 @@ constant if you want a different default.
 ## Install
 
 ```bash
-pi install git:github.com/hakergeniusz/pi-cot-tail
+pi install git:github.com/hakergeniusz/pi-tail-thinking
 ```
 
 Try it without installing:
 
 ```bash
-pi -e https://github.com/hakergeniusz/pi-cot-tail
+pi -e https://github.com/hakergeniusz/pi-tail-thinking
 ```
 
 Or copy `index.ts` anywhere and load it with `pi -e ./index.ts`.

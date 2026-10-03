@@ -1,4 +1,4 @@
-// cot-tail: keeps the chain of thought to a rolling tail in the transcript.
+// tail-thinking: keeps the chain of thought to a rolling tail in the transcript.
 // While the model is streaming its thinking, only the last 15 lines are shown
 // (with a "… +N lines" header); the moment thinking ends — answer text or a
 // tool call starts, or the message finalizes — the block collapses to a single
@@ -76,8 +76,8 @@ export default function (pi: any) {
 			if (!arg) {
 				ctx.ui.notify(
 					mode === "auto"
-						? `cot-tail: last ${tailLines} lines while thinking, collapsed after (/cot auto|full|<N>)`
-						: `cot-tail: full thinking shown (/cot auto to restore tail+collapse)`,
+						? `tail-thinking: last ${tailLines} lines while thinking, collapsed after (/cot auto|full|<N>)`
+						: `tail-thinking: full thinking shown (/cot auto to restore tail+collapse)`,
 				);
 				return;
 			}
@@ -85,18 +85,18 @@ export default function (pi: any) {
 				mode = arg;
 				ctx.ui.notify(
 					mode === "auto"
-						? `cot-tail: showing last ${tailLines} lines while thinking, collapsing after`
-						: "cot-tail: full thinking shown (no tail, no collapse)",
+						? `tail-thinking: showing last ${tailLines} lines while thinking, collapsing after`
+						: "tail-thinking: full thinking shown (no tail, no collapse)",
 				);
 				return;
 			}
 			const n = Number(arg);
 			if (!Number.isInteger(n) || n < 1 || n > 200) {
-				ctx.ui.notify(`cot-tail: don't understand "${arg}" — use /cot auto|full|<lines 1-200>`, "error");
+				ctx.ui.notify(`tail-thinking: don't understand "${arg}" — use /cot auto|full|<lines 1-200>`, "error");
 				return;
 			}
 			tailLines = n;
-			ctx.ui.notify(`cot-tail: tail set to ${n} lines (${mode} mode)`);
+			ctx.ui.notify(`tail-thinking: tail set to ${n} lines (${mode} mode)`);
 		},
 	});
 }

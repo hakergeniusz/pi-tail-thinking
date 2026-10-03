@@ -15,6 +15,7 @@ type Handler = (event: any, ctx?: any) => any;
 const handlers: Record<string, Handler[]> = {};
 let transformer: Handler | undefined;
 const commands: Record<string, { handler: Handler }> = {};
+const shortcuts: Record<string, { description?: string; handler: Handler }> = {};
 
 const pi = {
 	on(event: string, handler: Handler) {
@@ -25,6 +26,9 @@ const pi = {
 	},
 	registerCommand(name: string, opts: { handler: Handler }) {
 		commands[name] = opts;
+	},
+	registerShortcut(key: string, opts: { description?: string; handler: Handler }) {
+		shortcuts[key] = opts;
 	},
 };
 
@@ -52,6 +56,23 @@ function check(name: string, cond: boolean, detail?: string) {
 // --- tests -------------------------------------------------------------------
 
 check("registers transformer and command", !!transformer && !!commands["cot"]);
+
+check("registers Ctrl+O and Ctrl+T shortcuts", !!shortcuts["ctrl+o"] && !!shortcuts["ctrl+t"]);
+
+const twentyLines = Array.from({ length: 20 }, (_, i) => `line ${i + 1}`).join("\n");
+fire("message_update", { message: { role: "assistant", content: [{ type: "thinking", thinking: twentyLines }] } });
+check("collapsed: streams tail", transformer!(twentyLines, thinking({})).split("\n").length === 16);
+
+shortcuts["ctrl+o"].handler(ctx);
+check("Ctrl+O expands: full CoT passthrough", transformer!(twentyLines, thinking({})) === twentyLines);
+
+shortcuts["ctrl+o"].handler(ctx);
+check("Ctrl+O collapses again: tail restored", transformer!(twentyLines, thinking({})).split("\n").length === 16);
+
+const notesBefore = notifications.length;
+shortcuts["ctrl+t"].handler(ctx);
+shortcuts["ctrl+t"].handler(ctx);
+check("Ctrl+T hints once, stays silent after", notifications.length - notesBefore === 1 && notifications.some((n) => n.includes("Ctrl+T is disabled")));
 
 const twenty = Array.from({ length: 20 }, (_, i) => `line ${i + 1}`).join("\n");
 fire("message_update", { message: { role: "assistant", content: [{ type: "thinking", thinking: twenty }] } });

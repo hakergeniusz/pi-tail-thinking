@@ -13,14 +13,21 @@ the reasoning you wanted to watch has scrolled away, and finished messages
 keep every line of CoT forever. A rolling tail keeps the live view readable,
 and the collapse keeps finished turns to a single line.
 
-## Commands
+## Commands and keys
 
-| Command | What it does |
+| Input | What it does |
 |---|---|
-| `/cot` | Show current mode and tail size |
+| `Ctrl+O` | Expand or collapse the CoT (shadows pi's tool-output toggle) |
+| `/cot` | Show current state and tail size |
 | `/cot auto` | Default: last N lines while thinking, collapsed after (N = 15) |
 | `/cot full` | Never tail, never collapse — full thinking everywhere |
 | `/cot <N>` | Tail size in lines, e.g. `/cot 25` (1–200) |
+
+`Ctrl+T` is **disabled** while this extension is loaded: pi's built-in
+hide-thinking toggle fights the collapse managed here (two stacked collapsed
+states). Extension shortcuts dispatch before built-in keybindings, so the
+extension claims the key — the first press explains this, later presses stay
+silent.
 
 ## How it works
 
@@ -28,10 +35,10 @@ Two hooks, no payload changes — the model sees exactly what pi built:
 
 - `registerMarkdownTransformer` scoped to `assistant-thinking` blocks. While
   the block streams, it returns the last N lines with a `… +N lines` header;
-  once thinking is over it returns the one-line collapsed label. The
-  transformer composes with pi's built-in thinking controls: Ctrl+T (hide
-  thinking) and mouse-click visibility overrides replace the block entirely
-  and bypass the extension.
+  once thinking is over it returns the one-line collapsed label. Mouse-click
+  visibility overrides replace the block entirely and bypass the extension.
+- `registerShortcut` claims `ctrl+o` (expand/collapse) and shadows `ctrl+t`;
+  extension shortcuts dispatch before pi's built-in keybindings.
 - `message_update` / `message_end` track whether the streaming message's
   latest visible activity is still a thinking block, so the collapse lands as
   soon as the answer starts — not when the whole turn finalizes.

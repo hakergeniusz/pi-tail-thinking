@@ -1,6 +1,6 @@
 {
 	"name": "pi-tail-thinking",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"description": "Rolling CoT tail for the pi coding agent: shows only the last 15 thinking lines while the model thinks, collapses the block the moment it stops. /cot to tune.",
 	"type": "module",
 	"license": "MIT",

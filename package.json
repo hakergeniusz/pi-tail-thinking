@@ -1,0 +1,31 @@
+{
+	"name": "pi-cot-tail",
+	"version": "1.0.0",
+	"description": "Rolling CoT tail for the pi coding agent: shows only the last 15 thinking lines while the model thinks, collapses the block the moment it stops. /cot to tune.",
+	"type": "module",
+	"license": "MIT",
+	"keywords": [
+		"pi",
+		"pi-package",
+		"chain-of-thought",
+		"thinking",
+		"cot",
+		"transcript"
+	],
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/hakergeniusz/pi-cot-tail.git"
+	},
+	"bugs": {
+		"url": "https://github.com/hakergeniusz/pi-cot-tail/issues"
+	},
+	"homepage": "https://github.com/hakergeniusz/pi-cot-tail#readme",
+	"pi": {
+		"extensions": [
+			"./index.ts"
+		]
+	},
+	"peerDependencies": {
+		"@earendil-works/pi-coding-agent": "*"
+	}
+}

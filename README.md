@@ -17,17 +17,27 @@ and the collapse keeps finished turns to a single line.
 
 | Input | What it does |
 |---|---|
-| `Ctrl+O` | Expand or collapse the CoT (shadows pi's tool-output toggle) |
+| `Ctrl+O` | Expand or collapse the CoT |
+| `Ctrl+T` | Disabled — the extension owns thinking display |
 | `/cot` | Show current state and tail size |
 | `/cot auto` | Default: last N lines while thinking, collapsed after (N = 15) |
 | `/cot full` | Never tail, never collapse — full thinking everywhere |
 | `/cot <N>` | Tail size in lines, e.g. `/cot 25` (1–200) |
 
-`Ctrl+T` is **disabled** while this extension is loaded: pi's built-in
-hide-thinking toggle fights the collapse managed here (two stacked collapsed
-states). Extension shortcuts dispatch before built-in keybindings, so the
-extension claims the key — the first press explains this, later presses stay
-silent.
+`Ctrl+O` and `Ctrl+T` are **reserved** keys in pi — an extension cannot
+shadow them with `registerShortcut` alone. To hand them over, free them in
+`~/.pi/agent/keybindings.json` (pi's tool-output toggle moves to `Alt+O` so
+nothing is lost):
+
+```json
+{
+	"app.thinking.toggle": [],
+	"app.tools.expand": "alt+o"
+}
+```
+
+Without that file the extension still works; Ctrl+O and Ctrl+T keep their
+pi defaults.
 
 ## How it works
 

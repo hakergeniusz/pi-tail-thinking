@@ -7,10 +7,11 @@
 // Built on registerMarkdownTransformer, so it composes with click overrides:
 // they replace the block entirely and bypass this transformer.
 //
-// Keys (extension shortcuts dispatch before pi's built-in keybindings):
-//   Ctrl+O — expand or collapse the CoT (shadows pi's tool-output toggle)
-//   Ctrl+T — disabled: pi's built-in hide-thinking toggle fights the display
-//            management here; one hint on first press, then silent.
+// Keys: Ctrl+O expands/collapses the CoT; Ctrl+T is disabled (pi's built-in
+// hide-thinking toggle fights the display management here). Both keys are
+// reserved by pi — registerShortcut alone cannot shadow them — so the user's
+// keybindings.json must free them first:
+//   { "app.thinking.toggle": [], "app.tools.expand": "alt+o" }
 //
 // /cot        — show current state and tail size
 // /cot auto   — tail while thinking, collapse after (default)
@@ -87,9 +88,10 @@ export default function (pi: any) {
 		},
 	});
 
-	// Shadow pi's app.thinking.toggle: extension shortcuts dispatch before
-	// built-in keybindings (custom-editor.js checks onExtensionShortcut
-	// first), so this empty handler disables Ctrl+T while loaded.
+	// Claim ctrl+t for this extension: with app.thinking.toggle unbound in the
+	// user's keybindings.json, this registration takes the key. Without the
+	// unbinding, pi skips the registration (reserved key) and ctrl+t stays
+	// built-in — the hint explains that case.
 	let ctrlTNotified = false;
 	pi.registerShortcut("ctrl+t", {
 		description: "Disabled by tail-thinking (it owns thinking display)",

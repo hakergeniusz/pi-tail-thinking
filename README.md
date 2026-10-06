@@ -3,7 +3,7 @@
 Rolling chain-of-thought for [pi](https://github.com/earendil-works/pi): while
 the model streams its thinking, only the **last 15 lines** stay on screen; the
 moment it stops thinking, the block collapses to one dim line —
-``▸ thinking · 57 lines — collapsed (`ctrl+t` to collapse)`` (blocks of ≤5
+``▸ thinking · 57 lines — collapsed (`ctrl+t` to hide)`` (blocks of ≤5
 lines stay as-is: a label would be nearly as long as the content). Purely a
 display filter: nothing is removed from the session, and the full CoT is
 always one keypress away.

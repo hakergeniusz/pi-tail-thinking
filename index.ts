@@ -90,7 +90,7 @@ export default function (pi: any) {
 		// leave short blocks alone, the label would be nearly as long as the
 		// content.
 		if (lines.length <= SHORT_BLOCK_LINES) return markdown;
-		return `▸ thinking · ${lines.length} lines — collapsed (\`ctrl+t\` to collapse)`;
+		return `▸ thinking · ${lines.length} lines — collapsed (\`ctrl+t\` to hide)`;
 	});
 
 	// pi has no direct "re-render the transcript" API for extensions, but

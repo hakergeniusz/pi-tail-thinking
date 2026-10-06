@@ -99,7 +99,7 @@ rerendersBefore = rerenders;
 await commands["cot"].handler("hide", ctx);
 check("/cot hide hides", transformer!(twentyLines, thinking({})) === "▸ thinking hidden (`ctrl+t` to expand)");
 await commands["cot"].handler("show", ctx);
-check("/cot show reveals", transformer!(six, { messageType: "assistant-thinking", isStreaming: false }) === "▸ thinking · 6 lines — collapsed (`ctrl+t` to collapse)");
+check("/cot show reveals", transformer!(six, { messageType: "assistant-thinking", isStreaming: false }) === "▸ thinking · 6 lines — collapsed (`ctrl+t` to hide)");
 check("/cot show re-renders the transcript", rerenders === rerendersBefore + 2);
 
 const twenty = Array.from({ length: 20 }, (_, i) => `line ${i + 1}`).join("\n");
@@ -111,25 +111,25 @@ fire("message_update", { message: { role: "assistant", content: [{ type: "thinki
 check("passes short thinking through while streaming", transformer!("a\nb", thinking({})) === "a\nb");
 
 fire("message_update", { message: { role: "assistant", content: [{ type: "thinking", thinking: six }, { type: "text", text: "Answer start" }] } });
-check("collapses when answer text starts streaming", transformer!(six, thinking({})) === "▸ thinking · 6 lines — collapsed (`ctrl+t` to collapse)");
+check("collapses when answer text starts streaming", transformer!(six, thinking({})) === "▸ thinking · 6 lines — collapsed (`ctrl+t` to hide)");
 
 fire("message_update", { message: { role: "assistant", content: [{ type: "thinking", thinking: six }, { type: "toolCall", id: "t1" }] } });
-check("collapses when a tool call starts streaming", transformer!(six, thinking({})) === "▸ thinking · 6 lines — collapsed (`ctrl+t` to collapse)");
+check("collapses when a tool call starts streaming", transformer!(six, thinking({})) === "▸ thinking · 6 lines — collapsed (`ctrl+t` to hide)");
 
 fire("message_update", { message: { role: "assistant", content: [{ type: "thinking", thinking: "a" }, { type: "text", text: "" }] } });
 check("empty text block does not end thinking yet", transformer!("a", thinking({})) === "a");
 
 fire("message_update", { message: { role: "assistant", content: [{ type: "thinking", thinking: six }] } });
 fire("message_end", { message: { role: "assistant" } });
-check("collapses on message_end even while isStreaming flag lingers", transformer!(six, thinking({})) === "▸ thinking · 6 lines — collapsed (`ctrl+t` to collapse)");
+check("collapses on message_end even while isStreaming flag lingers", transformer!(six, thinking({})) === "▸ thinking · 6 lines — collapsed (`ctrl+t` to hide)");
 
 check("short historical blocks stay visible", transformer!(five, { messageType: "assistant-thinking", isStreaming: false }) === five);
-check("historical renders (isStreaming=false) are collapsed", transformer!(six, { messageType: "assistant-thinking", isStreaming: false }) === "▸ thinking · 6 lines — collapsed (`ctrl+t` to collapse)");
+check("historical renders (isStreaming=false) are collapsed", transformer!(six, { messageType: "assistant-thinking", isStreaming: false }) === "▸ thinking · 6 lines — collapsed (`ctrl+t` to hide)");
 
 await commands["cot"].handler("full", ctx);
 check("full mode is passthrough", transformer!(six, thinking({})) === six);
 await commands["cot"].handler("auto", ctx);
-check("/cot auto restores tail+collapse", transformer!(six, thinking({})) === "▸ thinking · 6 lines — collapsed (`ctrl+t` to collapse)");
+check("/cot auto restores tail+collapse", transformer!(six, thinking({})) === "▸ thinking · 6 lines — collapsed (`ctrl+t` to hide)");
 
 const eight = Array.from({ length: 8 }, (_, i) => `l${i}`).join("\n");
 fire("message_update", { message: { role: "assistant", content: [{ type: "thinking", thinking: eight }] } });
@@ -145,10 +145,10 @@ check("assistant markdown untouched", transformer!("# hi", { messageType: "assis
 
 // Establish a collapsed state (answer text streaming)…
 fire("message_update", { message: { role: "assistant", content: [{ type: "thinking", thinking: six }, { type: "text", text: "hi" }] } });
-check("collapsed state established", transformer!(six, { messageType: "assistant-thinking", isStreaming: true }) === "▸ thinking · 6 lines — collapsed (`ctrl+t` to collapse)");
+check("collapsed state established", transformer!(six, { messageType: "assistant-thinking", isStreaming: true }) === "▸ thinking · 6 lines — collapsed (`ctrl+t` to hide)");
 // …a user-role update must not reactivate the tail, even with a lingering streaming flag.
 fire("message_update", { message: { role: "user", content: [{ type: "text", text: "q" }] } });
-check("user message_update does not flip state", transformer!(six, { messageType: "assistant-thinking", isStreaming: true }) === "▸ thinking · 6 lines — collapsed (`ctrl+t` to collapse)");
+check("user message_update does not flip state", transformer!(six, { messageType: "assistant-thinking", isStreaming: true }) === "▸ thinking · 6 lines — collapsed (`ctrl+t` to hide)");
 
 // -----------------------------------------------------------------------------
 

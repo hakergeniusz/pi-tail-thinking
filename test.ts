@@ -75,32 +75,23 @@ const five = "a\nb\nc\nd\ne";
 fire("message_update", { message: { role: "assistant", content: [{ type: "thinking", thinking: twentyLines }] } });
 check("collapsed: streams tail", transformer!(twentyLines, thinking({})).split("\n").length === 16);
 
-await commands["cot"].handler("full", ctx);
-check("/cot full: full CoT passthrough", transformer!(twentyLines, thinking({})) === twentyLines);
-await commands["cot"].handler("auto", ctx);
-check("/cot auto collapses again: tail restored", transformer!(twentyLines, thinking({})).split("\n").length === 16);
-
 let rerendersBefore = rerenders;
 shortcuts["ctrl+t"].handler(ctx);
-check("Ctrl+T hides: streaming thinking collapses to placeholder", transformer!(twentyLines, thinking({})) === "▸ thinking hidden (`ctrl+t` to expand)");
-check("Ctrl+T hides: historical thinking collapses to placeholder", transformer!("a\nb\nc", { messageType: "assistant-thinking", isStreaming: false }) === "▸ thinking hidden (`ctrl+t` to expand)");
+check("Ctrl+T expands: streaming thinking is full passthrough", transformer!(twentyLines, thinking({})) === twentyLines);
+check("Ctrl+T expands: historical thinking is full passthrough", transformer!(six, { messageType: "assistant-thinking", isStreaming: false }) === six);
 check("Ctrl+T re-renders the transcript", rerenders === rerendersBefore + 1);
 
-// Hidden wins over expanded…
-await commands["cot"].handler("full", ctx);
-check("hidden wins over full mode", transformer!(twentyLines, thinking({})) === "▸ thinking hidden (`ctrl+t` to expand)");
 shortcuts["ctrl+t"].handler(ctx);
-check("showing while expanded reveals full CoT", transformer!(twentyLines, thinking({})) === twentyLines);
-// …and back to the tail.
-await commands["cot"].handler("auto", ctx);
-check("/cot auto after show restores tail", transformer!(twentyLines, thinking({})).split("\n").length === 16);
+check("Ctrl+T again: tail restored while streaming", transformer!(twentyLines, thinking({})).split("\n").length === 16);
+check("Ctrl+T again: collapse restored when thinking is over", transformer!(six, { messageType: "assistant-thinking", isStreaming: false }) === "▸ thinking · 6 lines — collapsed (`ctrl+t` to expand)");
+check("Ctrl+T toggles both ways", rerenders === rerendersBefore + 2);
 
-rerendersBefore = rerenders;
-await commands["cot"].handler("hide", ctx);
-check("/cot hide hides", transformer!(twentyLines, thinking({})) === "▸ thinking hidden (`ctrl+t` to expand)");
-await commands["cot"].handler("show", ctx);
-check("/cot show reveals", transformer!(six, { messageType: "assistant-thinking", isStreaming: false }) === "▸ thinking · 6 lines — collapsed (`ctrl+t` to hide)");
-check("/cot show re-renders the transcript", rerenders === rerendersBefore + 2);
+// No command changes the mode — Ctrl+T is the only control.
+for (const arg of ["full", "auto", "show", "hide"]) {
+	await commands["cot"].handler(arg, ctx);
+	check(`/cot ${arg} is rejected`, notifications.some((n) => n.includes(`don't understand "${arg}"`)));
+	check(`/cot ${arg} leaves the tail in place`, transformer!(twentyLines, thinking({})).split("\n").length === 16);
+}
 
 const twenty = Array.from({ length: 20 }, (_, i) => `line ${i + 1}`).join("\n");
 fire("message_update", { message: { role: "assistant", content: [{ type: "thinking", thinking: twenty }] } });
@@ -111,25 +102,25 @@ fire("message_update", { message: { role: "assistant", content: [{ type: "thinki
 check("passes short thinking through while streaming", transformer!("a\nb", thinking({})) === "a\nb");
 
 fire("message_update", { message: { role: "assistant", content: [{ type: "thinking", thinking: six }, { type: "text", text: "Answer start" }] } });
-check("collapses when answer text starts streaming", transformer!(six, thinking({})) === "▸ thinking · 6 lines — collapsed (`ctrl+t` to hide)");
+check("collapses when answer text starts streaming", transformer!(six, thinking({})) === "▸ thinking · 6 lines — collapsed (`ctrl+t` to expand)");
 
 fire("message_update", { message: { role: "assistant", content: [{ type: "thinking", thinking: six }, { type: "toolCall", id: "t1" }] } });
-check("collapses when a tool call starts streaming", transformer!(six, thinking({})) === "▸ thinking · 6 lines — collapsed (`ctrl+t` to hide)");
+check("collapses when a tool call starts streaming", transformer!(six, thinking({})) === "▸ thinking · 6 lines — collapsed (`ctrl+t` to expand)");
 
 fire("message_update", { message: { role: "assistant", content: [{ type: "thinking", thinking: "a" }, { type: "text", text: "" }] } });
 check("empty text block does not end thinking yet", transformer!("a", thinking({})) === "a");
 
 fire("message_update", { message: { role: "assistant", content: [{ type: "thinking", thinking: six }] } });
 fire("message_end", { message: { role: "assistant" } });
-check("collapses on message_end even while isStreaming flag lingers", transformer!(six, thinking({})) === "▸ thinking · 6 lines — collapsed (`ctrl+t` to hide)");
+check("collapses on message_end even while isStreaming flag lingers", transformer!(six, thinking({})) === "▸ thinking · 6 lines — collapsed (`ctrl+t` to expand)");
 
 check("short historical blocks stay visible", transformer!(five, { messageType: "assistant-thinking", isStreaming: false }) === five);
-check("historical renders (isStreaming=false) are collapsed", transformer!(six, { messageType: "assistant-thinking", isStreaming: false }) === "▸ thinking · 6 lines — collapsed (`ctrl+t` to hide)");
+check("historical renders (isStreaming=false) are collapsed", transformer!(six, { messageType: "assistant-thinking", isStreaming: false }) === "▸ thinking · 6 lines — collapsed (`ctrl+t` to expand)");
 
-await commands["cot"].handler("full", ctx);
-check("full mode is passthrough", transformer!(six, thinking({})) === six);
-await commands["cot"].handler("auto", ctx);
-check("/cot auto restores tail+collapse", transformer!(six, thinking({})) === "▸ thinking · 6 lines — collapsed (`ctrl+t` to hide)");
+shortcuts["ctrl+t"].handler(ctx);
+check("Ctrl+T expanded: finished block is passthrough", transformer!(six, thinking({})) === six);
+shortcuts["ctrl+t"].handler(ctx);
+check("Ctrl+T back: collapse restored", transformer!(six, thinking({})) === "▸ thinking · 6 lines — collapsed (`ctrl+t` to expand)");
 
 const eight = Array.from({ length: 8 }, (_, i) => `l${i}`).join("\n");
 fire("message_update", { message: { role: "assistant", content: [{ type: "thinking", thinking: eight }] } });
@@ -138,17 +129,17 @@ await commands["cot"].handler("5", ctx);
 check("/cot 5 changes tail size", transformer!(eight, thinking({})) === "… +3 lines\nl3\nl4\nl5\nl6\nl7");
 check("/cot 5 notifies", notifications.some((n) => n.includes("tail set to 5")));
 check("/cot 5 re-renders the transcript", rerenders === rerendersBefore + 1);
-await commands["cot"].handler("auto", ctx);
+await commands["cot"].handler("15", ctx);
 
 check("user markdown untouched", transformer!("# hi", { messageType: "user", isStreaming: false }) === "# hi");
 check("assistant markdown untouched", transformer!("# hi", { messageType: "assistant", isStreaming: false }) === "# hi");
 
 // Establish a collapsed state (answer text streaming)…
 fire("message_update", { message: { role: "assistant", content: [{ type: "thinking", thinking: six }, { type: "text", text: "hi" }] } });
-check("collapsed state established", transformer!(six, { messageType: "assistant-thinking", isStreaming: true }) === "▸ thinking · 6 lines — collapsed (`ctrl+t` to hide)");
+check("collapsed state established", transformer!(six, { messageType: "assistant-thinking", isStreaming: true }) === "▸ thinking · 6 lines — collapsed (`ctrl+t` to expand)");
 // …a user-role update must not reactivate the tail, even with a lingering streaming flag.
 fire("message_update", { message: { role: "user", content: [{ type: "text", text: "q" }] } });
-check("user message_update does not flip state", transformer!(six, { messageType: "assistant-thinking", isStreaming: true }) === "▸ thinking · 6 lines — collapsed (`ctrl+t` to hide)");
+check("user message_update does not flip state", transformer!(six, { messageType: "assistant-thinking", isStreaming: true }) === "▸ thinking · 6 lines — collapsed (`ctrl+t` to expand)");
 
 // -----------------------------------------------------------------------------
 

@@ -1,24 +1,25 @@
 // tail-thinking: keeps the chain of thought to a rolling tail in the transcript.
-// While the model is streaming its thinking, only the last 15 lines are shown
-// (with a "… +N lines" header); the moment thinking ends — answer text or a
-// tool call starts, or the message finalizes — the block collapses to a single
-// dim line with the line count. Short blocks (≤5 lines) stay as-is: the label
-// would be nearly as long as the content. Historical messages render collapsed
-// too.
+// Default: while the model streams its thinking, only the last 15 lines are
+// shown (with a "… +N lines" header); the moment thinking ends — answer text or
+// a tool call starts, or the message finalizes — the block collapses to a
+// single dim line with the line count. Short blocks (≤5 lines) stay as-is: the
+// label would be nearly as long as the content. Historical messages render
+// collapsed too.
+//
+// Ctrl+T is the one and only control: it toggles between the tail (last N
+// lines while thinking, collapsed after) and full thinking everywhere. There
+// is no third state — no fully-hidden mode, no separate command to switch — so
+// "what does Ctrl+T do now" has exactly one answer.
 //
 // Built on registerMarkdownTransformer, so it composes with click overrides:
 // they replace the block entirely and bypass this transformer.
 //
-// Keys: Ctrl+T shows/hides thinking blocks. That is the only key this
-// extension claims; Alt+O used to expand/collapse the CoT and was removed so
-// the thinking-related keys stay at shift+tab (pi's cycle) and ctrl+t. Use
-// /cot full and /cot auto to switch between full CoT and the tail.
+// Keys: Ctrl+T expand/collapse the CoT. That is the only key this extension
+// claims; Alt+O used to expand/collapse the CoT and was removed so the
+// thinking-related keys stay at shift+tab (pi's cycle) and ctrl+t.
 //
-// /cot           — show current state
-// /cot show|hide — display or hide thinking blocks (same as Ctrl+T)
-// /cot auto      — tail while thinking, collapse after (default)
-// /cot full      — never collapse, always show full thinking
-// /cot <N>       — tail size in lines, e.g. /cot 25 (default 15)
+// /cot     — show current state
+// /cot <N> — tail size in lines, e.g. /cot 25 (default 15)
 
 const DEFAULT_TAIL_LINES = 15;
 // Finished/historical thinking blocks with at most this many lines are left
@@ -27,13 +28,10 @@ const DEFAULT_TAIL_LINES = 15;
 const SHORT_BLOCK_LINES = 5;
 
 let tailLines = DEFAULT_TAIL_LINES;
-// false: rolling tail while thinking + one-line collapse after. true: full
-// CoT everywhere, streaming included. Set by /cot full and /cot auto.
+// false: rolling tail while thinking + one-line collapse after (default). true:
+// full CoT everywhere, streaming included. Toggled by Ctrl+T only — session
+// state, like everything else here.
 let expanded = false;
-// true: thinking blocks render as a single "hidden" line (Ctrl+T is ignored
-// while hidden). Toggled by Ctrl+T, /cot hide, /cot show. Session-only, like
-// everything else here.
-let hidden = false;
 
 // True while the streaming assistant message's latest visible activity is a
 // thinking block. Derived from message_update so the collapse lands as soon as
@@ -72,10 +70,8 @@ export default function (pi: any) {
 
 	pi.registerMarkdownTransformer((markdown: string, context: { messageType: string; isStreaming: boolean }) => {
 		if (context.messageType !== "assistant-thinking") return markdown;
-		// Hidden wins over everything: one dim placeholder line, streaming or
-		// not. pi's per-block click overrides still bypass this and reveal the
-		// raw block.
-		if (hidden) return "▸ thinking hidden (`ctrl+t` to expand)";
+		// Expanded wins over everything: raw thinking, streaming or not. pi's
+		// per-block click overrides bypass this transformer entirely.
 		if (expanded) return markdown;
 
 		const lines = markdown.split("\n");
@@ -90,7 +86,7 @@ export default function (pi: any) {
 		// leave short blocks alone, the label would be nearly as long as the
 		// content.
 		if (lines.length <= SHORT_BLOCK_LINES) return markdown;
-		return `▸ thinking · ${lines.length} lines — collapsed (\`ctrl+t\` to hide)`;
+		return `▸ thinking · ${lines.length} lines — collapsed (\`ctrl+t\` to expand)`;
 	});
 
 	// pi has no direct "re-render the transcript" API for extensions, but
@@ -108,38 +104,26 @@ export default function (pi: any) {
 	// unbinding, pi skips the registration (reserved key) and ctrl+t stays
 	// pi's built-in thinking toggle.
 	pi.registerShortcut("ctrl+t", {
-		description: "Show or hide thinking blocks (tail-thinking)",
+		description: "Expand thinking, or show only its last lines (tail-thinking)",
 		handler: (ctx: { ui: { notify(message: string, type?: "info" | "warning" | "error"): void; setHiddenThinkingLabel?: (label?: string) => void } }) => {
-			hidden = !hidden;
+			expanded = !expanded;
 			rerenderTranscript(ctx);
-			ctx.ui.notify(hidden ? "tail-thinking: thinking hidden" : "tail-thinking: thinking visible");
+			ctx.ui.notify(expanded ? "tail-thinking: full thinking" : `tail-thinking: last ${tailLines} lines, collapsed after`);
 		},
 	});
 
 	pi.registerCommand("cot", {
-		description: "Chain-of-thought display: /cot [show|hide|auto|full|<lines>]",
+		description: "Chain-of-thought display: /cot [<lines 1-200>]",
 		handler: async (args: string, ctx: { ui: { notify(message: string, type?: "info" | "warning" | "error"): void; setHiddenThinkingLabel?: (label?: string) => void } }) => {
 			const arg = args.trim();
 			if (!arg) {
-				const mode = hidden ? "thinking hidden" : expanded ? "full CoT" : `tail ${tailLines} lines, collapsed after`;
-				ctx.ui.notify(`tail-thinking: ${mode} (Ctrl+T hide/show)`);
-				return;
-			}
-			if (arg === "hide" || arg === "show") {
-				hidden = arg === "hide";
-				rerenderTranscript(ctx);
-				ctx.ui.notify(hidden ? "tail-thinking: thinking hidden" : "tail-thinking: thinking visible");
-				return;
-			}
-			if (arg === "auto" || arg === "full") {
-				expanded = arg === "full";
-				rerenderTranscript(ctx);
-				ctx.ui.notify(expanded ? "tail-thinking: expanded" : `tail-thinking: collapsed (tail ${tailLines})`);
+				const mode = expanded ? "full thinking" : `last ${tailLines} lines while thinking, collapsed after`;
+				ctx.ui.notify(`tail-thinking: ${mode} (Ctrl+T toggles)`);
 				return;
 			}
 			const n = Number(arg);
 			if (!Number.isInteger(n) || n < 1 || n > 200) {
-				ctx.ui.notify(`tail-thinking: don't understand "${arg}" — use /cot show|hide|auto|full|<lines 1-200>`, "error");
+				ctx.ui.notify(`tail-thinking: don't understand "${arg}" — use /cot or /cot <lines 1-200>`, "error");
 				return;
 			}
 			tailLines = n;
